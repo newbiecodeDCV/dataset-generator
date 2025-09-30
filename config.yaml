@@ -1,0 +1,61 @@
+# Dataset Generator Configuration for ADACS Meeting Data
+
+# Dataset Configuration
+dataset:
+  name: "meeting_codeswitch_adacs"
+  output_file: "./output/meeting_dataset.json"
+  size: 1000
+  
+# OpenAI Configuration (Cost-effective)
+openai:
+  model: "gpt-3.5-turbo"  # Cost-effective choice
+  temperature: 0.7
+  max_tokens: 300  # Reduced for cost control
+  batch_delay: 0.5  # Delay between requests to avoid rate limits
+  max_retries: 3
+
+# Meeting Contexts (Weight distribution)
+meeting_contexts:
+  daily_standup: 0.20
+  sprint_planning: 0.15
+  client_presentation: 0.15
+  technical_discussion: 0.20
+  performance_review: 0.10
+  training_session: 0.10
+  team_meeting: 0.10
+
+# Difficulty Distribution
+difficulty_levels:
+  easy: 0.50   # Single common words
+  hard: 0.35   # Technical terms, phrases
+  mixed: 0.15  # Heavy code-switching
+
+# Meeting Domains
+domains:
+  - software_development
+  - business_strategy
+  - product_management
+  - marketing
+  - sales
+  - operations
+  - project_management
+
+# Pronunciation Settings
+pronunciation:
+  use_llm_for_complex: false  # Set false to save cost
+  use_rules_only: true
+  cache_results: true
+  rules_file: "./data/pronunciation_rules.json"
+
+# Few-shot Configuration
+few_shot:
+  num_examples: 3  # 3-5 examples per prompt
+  source: "./prompts/few_shot_examples.json"
+  use_adacs_examples: true
+  
+# Quality Control
+validation:
+  strict_mode: true
+  auto_fix: false
+  min_en_words: 1
+  max_en_words: 10
