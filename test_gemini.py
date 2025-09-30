@@ -87,7 +87,7 @@ def test_gemini_with_generator():
         
         # Save temp config
         with open('config_gemini_test.yaml', 'w', encoding='utf-8') as f:
-            yaml.safe_dump(config, f, ensure_ascii=False, indent=2)
+            yaml.safe_dump(config, f, default_flow_style=False, allow_unicode=True, indent=2)
         
         print("✓ Created test config with Gemini provider")
         
