@@ -38,7 +38,7 @@ Output mẫu:
 Successfully installed openai-1.0.0 python-dotenv-1.0.0 pyyaml-6.0 pandas-2.0.0 tqdm-4.65.0
 ```
 
-### 3. Cấu hình OpenAI API Key
+### 3. Cấu hình AI Provider (OpenAI hoặc Gemini)
 ```bash
 # Tạo file .env từ template
 cp .env.example .env
@@ -47,9 +47,21 @@ cp .env.example .env
 nano .env
 ```
 
+#### Option A: Sử dụng OpenAI (mặc định)
 Nội dung file `.env`:
 ```env
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### Option B: Sử dụng Google Gemini (thay thế miễn phí/rẻ hơn)
+1. **Lấy Gemini API key**: https://aistudio.google.com/app/apikey
+2. **Cập nhật .env**:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+3. **Cập nhật config.yaml**:
+```yaml
+ai_provider: "gemini"  # Đổi từ "openai" thành "gemini"
 ```
 
 ## 📝 Cấu Trúc Project
@@ -73,10 +85,23 @@ dataset-generator/
 
 ## 🎯 Sử Dụng
 
-### Test với 5 mẫu
+### Test kết nối API
+
+#### Test OpenAI (mặc định):
 ```bash
 python generate_dataset.py --test
 ```
+
+#### Test Gemini integration:
+```bash
+# Cài đặt Gemini SDK trước
+pip install google-generativeai>=0.3.0
+
+# Test kết nối Gemini
+python test_gemini.py
+```
+
+### Tạo dataset với 5 mẫu test
 
 Output:
 ```
@@ -182,11 +207,19 @@ difficulty_levels:
 
 ## 💰 Chi Phí Ước Tính
 
-| Số lượng | Model | Chi phí |
-|----------|-------|---------|
-| 100 mẫu | gpt-3.5-turbo | ~$0.06 |
-| 1000 mẫu | gpt-3.5-turbo | ~$0.60 |
-| 5000 mẫu | gpt-3.5-turbo | ~$3.00 |
+### So sánh OpenAI vs Gemini:
+
+| Số lượng | OpenAI (gpt-3.5-turbo) | Gemini (1.5-flash) | Tiết kiệm |
+|----------|------------------------|--------------------|-----------|
+| 100 mẫu  | ~$0.06                | ~$0.01            | 83%       |
+| 1000 mẫu | ~$0.60                | ~$0.10            | 83%       |
+| 5000 mẫu | ~$3.00                | ~$0.50            | 83%       |
+
+**🔥 Khuyến nghị**: Sử dụng Gemini để tiết kiệm chi phí đáng kể!
+
+### Chi tiết pricing:
+- **OpenAI gpt-3.5-turbo**: $0.002/1K tokens
+- **Gemini 1.5-flash**: $0.000375/1K tokens (rẻ hơn 5.3x)
 
 ## 📊 Ví Dụ Dataset Tạo Ra
 

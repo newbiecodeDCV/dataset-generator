@@ -5,6 +5,9 @@ dataset:
   name: "meeting_codeswitch_adacs"
   output_file: "./output/meeting_dataset.json"
   size: 1000
+
+# AI Provider Selection (openai or gemini)
+ai_provider: "openai"  # Change to "gemini" to use Google Gemini
   
 # OpenAI Configuration (Cost-effective)
 openai:
@@ -12,6 +15,14 @@ openai:
   temperature: 0.7
   max_tokens: 300  # Reduced for cost control
   batch_delay: 0.5  # Delay between requests to avoid rate limits
+  max_retries: 3
+
+# Gemini Configuration (Cost-effective alternative)
+gemini:
+  model: "gemini-1.5-flash"  # Most cost-effective Gemini model
+  temperature: 0.7
+  max_tokens: 300
+  batch_delay: 0.3  # Gemini has higher rate limits
   max_retries: 3
 
 # Meeting Contexts (Weight distribution)

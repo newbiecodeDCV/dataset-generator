@@ -10,7 +10,7 @@ import yaml
 import random
 import time
 import argparse
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
@@ -20,6 +20,7 @@ from src.pronunciation_engine import PronunciationEngine
 from src.prompt_builder import PromptBuilder
 from src.data_processor import DataProcessor
 from src.validator import ADACSValidator
+from src.gemini_client import GeminiClient, create_gemini_client
 
 
 class MeetingDatasetGenerator:
@@ -37,11 +38,9 @@ class MeetingDatasetGenerator:
         with open(config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.safe_load(f)
         
-        # Initialize OpenAI client
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
-        self.client = OpenAI(api_key=api_key)
+        # Initialize AI client based on provider
+        self.provider = self.config.get('ai_provider', 'openai').lower()
+        self.client = self._initialize_ai_client()
         
         # Initialize components
         self.pronunciation_engine = PronunciationEngine(
@@ -60,6 +59,28 @@ class MeetingDatasetGenerator:
             "failed": 0,
             "api_errors": 0
         }
+    
+    def _initialize_ai_client(self) -> Union[OpenAI, GeminiClient]:
+        """
+        Initialize AI client based on configured provider
+        
+        Returns:
+            OpenAI or GeminiClient instance
+        """
+        if self.provider == 'openai':
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY not found in environment variables")
+            return OpenAI(api_key=api_key)
+            
+        elif self.provider == 'gemini':
+            client = create_gemini_client(self.config)
+            if not client:
+                raise ValueError("Failed to initialize Gemini client")
+            return client
+            
+        else:
+            raise ValueError(f"Unsupported AI provider: {self.provider}. Use 'openai' or 'gemini'")
     
     def _select_context_and_difficulty(self) -> tuple:
         """
@@ -83,9 +104,9 @@ class MeetingDatasetGenerator:
         
         return context, domain, difficulty
     
-    def _call_openai_api(self, messages: List[Dict], retry_count: int = 0) -> Optional[str]:
+    def _call_ai_api(self, messages: List[Dict], retry_count: int = 0) -> Optional[str]:
         """
-        Call OpenAI API with retry logic
+        Call AI API (OpenAI or Gemini) with retry logic
         
         Args:
             messages: List of message dicts
@@ -95,24 +116,33 @@ class MeetingDatasetGenerator:
             API response content or None if failed
         """
         try:
-            response = self.client.chat.completions.create(
-                model=self.config['openai']['model'],
-                messages=messages,
-                temperature=self.config['openai']['temperature'],
-                max_tokens=self.config['openai']['max_tokens']
-            )
-            return response.choices[0].message.content
+            if self.provider == 'openai':
+                response = self.client.chat.completions.create(
+                    model=self.config['openai']['model'],
+                    messages=messages,
+                    temperature=self.config['openai']['temperature'],
+                    max_tokens=self.config['openai']['max_tokens']
+                )
+                return response.choices[0].message.content
+                
+            elif self.provider == 'gemini':
+                return self.client.generate_response(
+                    messages=messages,
+                    temperature=self.config['gemini']['temperature'],
+                    max_tokens=self.config['gemini']['max_tokens'],
+                    max_retries=self.config['gemini']['max_retries']
+                )
             
         except Exception as e:
-            print(f"\nAPI Error: {e}")
+            print(f"\n{self.provider.upper()} API Error: {e}")
             self.stats["api_errors"] += 1
             
-            # Retry logic
-            if retry_count < self.config['openai']['max_retries']:
+            # Retry logic for OpenAI (Gemini handles retries internally)
+            if self.provider == 'openai' and retry_count < self.config['openai']['max_retries']:
                 wait_time = 2 ** retry_count  # Exponential backoff
                 print(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
-                return self._call_openai_api(messages, retry_count + 1)
+                return self._call_ai_api(messages, retry_count + 1)
             
             return None
     
@@ -131,8 +161,8 @@ class MeetingDatasetGenerator:
         # Build prompt messages
         messages = self.prompt_builder.build_messages(context, domain, difficulty)
         
-        # Call OpenAI API
-        llm_response = self._call_openai_api(messages)
+        # Call AI API
+        llm_response = self._call_ai_api(messages)
         if not llm_response:
             self.stats["failed"] += 1
             return None
@@ -167,11 +197,14 @@ class MeetingDatasetGenerator:
             size = self.config['dataset']['size']
         
         dataset = []
-        batch_delay = self.config['openai']['batch_delay']
+        batch_delay = self.config[self.provider]['batch_delay']
         
         print(f"\n{'='*60}")
         print(f"Starting dataset generation: {size} samples")
-        print(f"Model: {self.config['openai']['model']}")
+        if self.provider == 'openai':
+            print(f"Provider: OpenAI - Model: {self.config['openai']['model']}")
+        else:
+            print(f"Provider: Gemini - Model: {self.config['gemini']['model']}")
         print(f"{'='*60}\n")
         
         pbar = tqdm(total=size, desc="Generating samples")
@@ -256,11 +289,26 @@ def main():
     
     args = parser.parse_args()
     
-    # Check API key
-    if not os.getenv('OPENAI_API_KEY'):
-        print("❌ Error: OPENAI_API_KEY environment variable not set!")
-        print("Please set it in .env file or export it:")
-        print("  export OPENAI_API_KEY='your-api-key-here'")
+    # Check API key based on provider in config
+    try:
+        with open(args.config, 'r', encoding='utf-8') as f:
+            temp_config = yaml.safe_load(f)
+        provider = temp_config.get('ai_provider', 'openai').lower()
+        
+        if provider == 'openai':
+            if not os.getenv('OPENAI_API_KEY'):
+                print("❌ Error: OPENAI_API_KEY environment variable not set!")
+                print("Please set it in .env file or export it:")
+                print("  export OPENAI_API_KEY='your-api-key-here'")
+                return
+        elif provider == 'gemini':
+            if not os.getenv('GEMINI_API_KEY'):
+                print("❌ Error: GEMINI_API_KEY environment variable not set!")
+                print("Please set it in .env file or export it:")
+                print("  export GEMINI_API_KEY='your-api-key-here'")
+                return
+    except Exception as e:
+        print(f"❌ Error loading config: {e}")
         return
     
     try:
