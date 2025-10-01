@@ -5,10 +5,22 @@ Tạo câu tiếng Việt tự nhiên có chứa từ/cụm từ tiếng Anh nh�
 
 YÊU CẦU - CHỈ TRẢ VỀ JSON:
 {
-  "text": "Câu tiếng Việt có từ tiếng Anh viết ĐÚNG CHÍNH TẢ (giữ cả chữ HOA)",
-  "context": "meeting context",
-  "en_words": ["List", "từ", "tiếng", "Anh"],
-  "difficulty": "easy hoặc hard hoặc mixed"
+  {
+  "origin": "Team Leader yêu cầu update status của Sprint Planning Meeting",
+  "spoken": "tím lí đơ yêu cầu áp đét xờ tét tút của xờ pin pờ lán ninh mí tinh",
+  "en_word": ["Team", "Leader", "update", "status", "Sprint", "Planning", "Meeting"],
+  "vi_spoken_word": ["tím", "lí đơ", "áp đét", "xờ tét tút", "xờ pin", "pờ lán ninh", "mí tinh"],
+  "type": "hard",
+  "en_phrase": ["Team Leader", "Sprint Planning Meeting", "update", "status"]
+},
+{
+  "origin": "Một số loại MRI chuyên biệt bao gồm MRI chức năng, MRI tưới máu và quang phổ cộng hưởng từ có thể giúp bác sĩ đánh giá khối u và lên kế hoạch điều trị",
+  "spoken": "một số loại mờ rờ i chuyên biệt bao gồm mờ rờ i chức năng, mờ rờ i tưới máu và quang phổ cộng hưởng từ có thể giúp bác sĩ đánh giá khối u và lên kế hoạch điều trị",
+  "en_word": ["MRI", "MRI", "MRI"],
+  "vi_spoken_word": ["mờ rờ i", "mờ rờ i", "mờ rờ i"],
+  "type": "easy",
+  "en_phrase": ["MRI", "MRI", "MRI"]
+},
 }
 
 LƯU Ý:
@@ -19,8 +31,24 @@ LƯU Ý:
 
 VÍ DỤ ĐÚNG:
 {
-  "text": "Team Leader yêu cầu update status của Sprint Planning Meeting này",
-  "context": "sprint_planning",
-  "en_words": ["Team", "Leader", "update", "status", "Sprint", "Planning", "Meeting"],
-  "difficulty": "hard"
+{
+    "origin": "Nếu phụ nữ đang mang thai bị nhiễm rubella thì virus có thể đi qua nhau thai và lây truyền cho thai nhi gây ra hội chứng rubella bẩm sinh",
+    "spoken": "nếu phụ nữ đang mang thai bị nhiễm ru be la thì vi rút có thể đi qua nhau thai và lây truyền cho thai nhi gây ra hội chứng ru be la bẩm sinh",
+    "en_word": [
+        "rubella",
+        "virus",
+        "rubella"
+    ],
+    "vi_spoken_word": [
+        "ru be la",
+        "vi rút",
+        "ru be la"
+    ],
+    "type": "easy",
+    "en_phrase": [
+        "rubella",
+        "virus",
+        "rubella"
+    ]
+},
 }

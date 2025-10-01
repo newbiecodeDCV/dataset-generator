@@ -64,10 +64,10 @@ class PromptBuilder:
         
         for i, example in enumerate(selected_examples, 1):
             example_json = {
-                "text": example["text"],
-                "context": example["context"],
-                "en_words": example["en_words"],
-                "difficulty": example["difficulty"]
+                "text": example.get("spoken", example.get("text", "")),
+                "context": example.get("context", "medical_discussion"),
+                "en_words": example.get("en_word", example.get("en_words", [])),
+                "difficulty": example.get("type", example.get("difficulty", "easy"))
             }
             examples_text += f"[Ví dụ {i}]\n"
             examples_text += json.dumps(example_json, ensure_ascii=False, indent=2)
@@ -99,8 +99,8 @@ CHỈ trả về JSON (KHÔNG thêm ```json), theo format như ví dụ trên.""
             return []
         
         # Separate examples by difficulty
-        same_difficulty = [ex for ex in self.few_shot_examples if ex.get("difficulty") == difficulty]
-        other_examples = [ex for ex in self.few_shot_examples if ex.get("difficulty") != difficulty]
+        same_difficulty = [ex for ex in self.few_shot_examples if ex.get("type", ex.get("difficulty")) == difficulty]
+        other_examples = [ex for ex in self.few_shot_examples if ex.get("type", ex.get("difficulty")) != difficulty]
         
         # Select examples
         selected = []

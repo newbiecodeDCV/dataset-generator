@@ -7,8 +7,9 @@ dataset:
   size: 1000
 
 # AI Provider Selection (openai or gemini)
-ai_provider: "openai"  # Change to "gemini" to use Google Gemini
+ai_provider: "gemini"  # Change to "gemini" to use Google Gemini
   
+
 # OpenAI Configuration (Cost-effective)
 openai:
   model: "gpt-3.5-turbo"  # Cost-effective choice
@@ -19,7 +20,7 @@ openai:
 
 # Gemini Configuration (Cost-effective alternative)
 gemini:
-  model: "gemini-1.5-flash"  # Most cost-effective Gemini model
+  model: "gemini-2.5-flash-lite"  # Mosggemini-2.0-flash emini-2.5-flasht cost-effective Gemini model
   temperature: 0.7
   max_tokens: 300
   batch_delay: 0.3  # Gemini has higher rate limits

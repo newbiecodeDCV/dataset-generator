@@ -27,7 +27,7 @@ class DataProcessor:
             response: Raw response from LLM
             
         Returns:
-            Parsed dict with text, context, en_words, difficulty or None if failed
+            Parsed dict - either ADACS format or simple format
         """
         try:
             # Remove markdown code blocks if present
@@ -38,13 +38,19 @@ class DataProcessor:
             # Parse JSON
             data = json.loads(response)
             
-            # Validate required fields
-            required_fields = ["text", "context", "en_words", "difficulty"]
-            if all(field in data for field in required_fields):
+            # Check if it's ADACS format (direct from LLM)
+            adacs_fields = ["origin", "spoken", "en_word", "vi_spoken_word", "type", "en_phrase"]
+            if all(field in data for field in adacs_fields):
                 return data
-            else:
-                print(f"Missing required fields in LLM response: {data}")
-                return None
+            
+            # Check if it's simple format (needs processing)
+            simple_fields = ["text", "context", "en_words", "difficulty"]
+            if all(field in data for field in simple_fields):
+                return data
+            
+            # If neither format matches
+            print(f"Missing required fields in LLM response: {data}")
+            return None
                 
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON from LLM response: {e}")
@@ -190,7 +196,13 @@ class DataProcessor:
         if not parsed:
             return None
         
-        # Build ADACS format
+        # Check if it's already in ADACS format
+        adacs_fields = ["origin", "spoken", "en_word", "vi_spoken_word", "type", "en_phrase"]
+        if all(field in parsed for field in adacs_fields):
+            # Already in ADACS format, return as-is
+            return parsed
+        
+        # Otherwise, build ADACS format from simple format
         try:
             adacs_entry = self.build_adacs_format(
                 origin_text=parsed["text"],
