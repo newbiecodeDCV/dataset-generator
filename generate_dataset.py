@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 """
 Main Dataset Generator for ADACS Meeting Data
-Tạo dataset code-switching cho meeting context với format ADACS
+
+Tạo dataset code-switching Việt-Anh cho huấn luyện ASR trong bối cảnh meeting/tổng đài.
+Sử dụng LLM (OpenAI/Gemini) để tạo câu tự nhiên và pronunciation engine để phiên âm chính xác.
+
+Tính năng chính:
+- Tạo câu code-switching tự nhiên theo context đa dạng
+- Phiên âm chính xác từ regtag_v3.json (128k+ từ)
+- Auto-fix các lỗi phiên âm từ LLM
+- Validation ADACS format nghiêm ngặt
+- Thống kê chi tiết chất lượng pronunciation
+
+Author: Dataset Generator Team
 """
 
 import os
@@ -16,7 +27,7 @@ from openai import OpenAI
 from tqdm import tqdm
 
 # Import modules
-from src.pronunciation_engine import PronunciationEngine
+from src.regtag_pronunciation_engine import RegtagPronunciationEngine
 from src.prompt_builder import PromptBuilder
 from src.data_processor import DataProcessor
 from src.validator import ADACSValidator
@@ -24,12 +35,22 @@ from src.gemini_client import GeminiClient, create_gemini_client
 
 
 class MeetingDatasetGenerator:
+    """
+    Lớp chính để tạo dataset code-switching cho ASR
+    
+    Chức năng:
+    - Tích hợp LLM (OpenAI/Gemini) để tạo câu
+    - Sử dụng RegtagPronunciationEngine để phiên âm chính xác
+    - Auto-fix và validation ADACS format
+    - Quản lý thống kê và báo cáo
+    """
+    
     def __init__(self, config_path: str = "config.yaml"):
         """
-        Initialize dataset generator
+        Khởi tạo dataset generator
         
         Args:
-            config_path: Path to configuration file
+            config_path: Đường dẫn đến file cấu hình YAML
         """
         # Load environment variables
         load_dotenv()
@@ -43,13 +64,22 @@ class MeetingDatasetGenerator:
         self.client = self._initialize_ai_client()
         
         # Initialize components
-        self.pronunciation_engine = PronunciationEngine(
+        # Use RegtagPronunciationEngine with regtag_v3.json ABSOLUTE priority
+        self.pronunciation_engine = RegtagPronunciationEngine(
+            regtag_path='/home/hiennt/Downloads/regtag_v3.json',
             rules_file=self.config['pronunciation']['rules_file']
         )
         self.prompt_builder = PromptBuilder(
             num_examples=self.config['few_shot']['num_examples']
         )
-        self.data_processor = DataProcessor(self.pronunciation_engine)
+        # Check if AI pronunciation is enabled
+        use_ai_pronunciation = self.config.get('pronunciation', {}).get('use_llm_for_complex', False)
+        
+        self.data_processor = DataProcessor(
+            self.pronunciation_engine, 
+            use_ai_pronunciation=use_ai_pronunciation,
+            ai_client=self.client if use_ai_pronunciation else None
+        )
         self.validator = ADACSValidator()
         
         # Statistics
@@ -69,9 +99,13 @@ class MeetingDatasetGenerator:
         """
         if self.provider == 'openai':
             api_key = os.getenv('OPENAI_API_KEY')
+            base_url = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+            
             if not api_key:
                 raise ValueError("OPENAI_API_KEY not found in environment variables")
-            return OpenAI(api_key=api_key)
+            
+            print(f"🔗 Using OpenAI API endpoint: {base_url}")
+            return OpenAI(api_key=api_key, base_url=base_url)
             
         elif self.provider == 'gemini':
             client = create_gemini_client(self.config)
@@ -260,6 +294,30 @@ class MeetingDatasetGenerator:
         print(f"Failed:            {self.stats['failed']}")
         print(f"API errors:        {self.stats['api_errors']}")
         print(f"{'='*60}\n")
+        
+        # Print pronunciation statistics
+        if hasattr(self.pronunciation_engine, 'get_stats'):
+            print(f"\n{'='*60}")
+            print("PRONUNCIATION QUALITY REPORT")
+            print(f"{'='*60}")
+            pron_stats = self.pronunciation_engine.get_stats()
+            print(f"Total words transcribed: {pron_stats.get('total_calls', 0)}")
+            print(f"\nSource breakdown:")
+            print(f"  - From regtag_v3.json:  {pron_stats.get('regtag_hits', 0)} ({pron_stats.get('regtag_percentage', 0):.1f}%)")
+            print(f"  - From rules.json:      {pron_stats.get('rules_hits', 0)} ({pron_stats.get('rules_percentage', 0):.1f}%)")
+            print(f"  - From cache:           {pron_stats.get('cache_hits', 0)} ({pron_stats.get('cache_percentage', 0):.1f}%)")
+            print(f"  - Fallback (low qual):  {pron_stats.get('fallback_used', 0)} ({pron_stats.get('fallback_percentage', 0):.1f}%)")
+            
+            # Report missing words
+            if hasattr(self.pronunciation_engine, 'report_missing_words'):
+                missing = self.pronunciation_engine.report_missing_words()
+                if missing:
+                    print(f"\n⚠️  Words not in dictionaries ({len(missing)}):")
+                    for word in missing[:20]:  # Show first 20
+                        print(f"     - {word}")
+                    if len(missing) > 20:
+                        print(f"     ... and {len(missing) - 20} more")
+            print(f"{'='*60}\n")
 
 
 def main():

@@ -11,7 +11,7 @@ class ADACSValidator:
     def __init__(self):
         """Initialize validator"""
         self.required_fields = ["origin", "spoken", "en_word", "vi_spoken_word", "type", "en_phrase"]
-        self.valid_types = ["easy", "hard", "mixed"]
+        self.valid_types = ["easy", "hard"]  # CHỈ CÓ 2 LOẠI
     
     def validate_sample(self, sample: Dict) -> Tuple[bool, List[str]]:
         """
@@ -77,6 +77,12 @@ class ADACSValidator:
         for vi_word in sample["vi_spoken_word"]:
             if vi_word not in sample["spoken"]:
                 errors.append(f"Vietnamese pronunciation '{vi_word}' not found in spoken text")
+        
+        # NEW: Check if vi_spoken_word contains untranscribed English
+        for i, (en_word, vi_word) in enumerate(zip(sample["en_word"], sample["vi_spoken_word"])):
+            # If vi_word is exactly the same as en_word (case-insensitive), it's not transcribed
+            if vi_word.lower() == en_word.lower():
+                errors.append(f"English word '{en_word}' at position {i} was not transcribed (still '{vi_word}')")
         
         return len(errors) == 0, errors
     

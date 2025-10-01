@@ -1,33 +1,54 @@
 """
-Data Processor - Convert LLM output to ADACS format
-Xử lý output từ LLM và chuyển sang format ADACS
+Data Processor - Chuyển đổi output LLM sang format ADACS
+
+Xử lý và chuyển đổi kết quả từ LLM thành format ADACS chuẩn.
+Tích hợp pronunciation engine để auto-fix các lỗi phiên âm.
+
+Tính năng chính:
+- Parse và validate JSON output từ LLM
+- Auto-fix từ tiếng Anh chưa được phiên âm
+- Xây dựng spoken text với phiên âm chính xác
+- Trích xuất English phrases từ origin text
+
+Author: Dataset Generator Team
 """
 
 import json
 import re
 from typing import Dict, List, Tuple, Optional
-from .pronunciation_engine import PronunciationEngine
 
 
 class DataProcessor:
-    def __init__(self, pronunciation_engine: PronunciationEngine):
+    """
+    Lớp xử lý dữ liệu chính trong pipeline.
+    
+    Chuyển đổi output từ LLM thành format ADACS chuẩn và tự động
+    sửa các lỗi phiên âm phổ biến.
+    
+    Attributes:
+        pronunciation_engine: Engine xử lý phiên âm tiếng Anh
+    """
+    def __init__(self, pronunciation_engine, use_ai_pronunciation: bool = False, ai_client=None):
         """
-        Initialize data processor
+        Khởi tạo DataProcessor với pronunciation engine.
         
         Args:
-            pronunciation_engine: PronunciationEngine instance for transcription
+            pronunciation_engine: Instance của PronunciationEngine để xử lý phiên âm
+            use_ai_pronunciation: (Deprecated - bị bỏ qua)
+            ai_client: (Deprecated - bị bỏ qua)
         """
         self.pronunciation_engine = pronunciation_engine
     
     def parse_llm_response(self, response: str) -> Optional[Dict]:
         """
-        Parse LLM response to extract structured data
+        Phân tích response từ LLM để trích xuất dữ liệu có cấu trúc.
         
         Args:
-            response: Raw response from LLM
+            response: Raw response từ LLM (string JSON)
             
         Returns:
-            Parsed dict - either ADACS format or simple format
+            Dict đã parse - ADACS format hoặc simple format
+            None nếu parse thất bại
         """
         try:
             # Remove markdown code blocks if present
@@ -62,14 +83,14 @@ class DataProcessor:
     
     def extract_english_phrases(self, text: str, en_words: List[str]) -> List[str]:
         """
-        Extract English phrases from text
+        Trích xuất các cụm từ tiếng Anh từ văn bản.
         
         Args:
-            text: Original text with English words
-            en_words: List of English words
+            text: Văn bản gốc chứa các từ tiếng Anh
+            en_words: Danh sách các từ tiếng Anh rời rạc
             
         Returns:
-            List of English phrases (can include single words and multi-word phrases)
+            Danh sách các phrase tiếng Anh (bao gồm từ đơn và cụm từ)
         """
         phrases = []
         
@@ -115,19 +136,22 @@ class DataProcessor:
                           context: str,
                           difficulty: str) -> Dict:
         """
-        Build complete ADACS format data entry
+        Xây dựng entry hoàn chỉnh theo format ADACS.
         
         Args:
-            origin_text: Original Vietnamese text with English words
-            en_words: List of English words
-            context: Meeting context
-            difficulty: Difficulty level
+            origin_text: Văn bản tiếng Việt gốc có chứa từ tiếng Anh
+            en_words: Danh sách các từ tiếng Anh
+            context: Bối cảnh cuộc họp
+            difficulty: Mức độ khó
             
         Returns:
-            Complete ADACS format dict
+            Dict hoàn chỉnh theo format ADACS
         """
         # Generate Vietnamese pronunciations for English words
         vi_spoken_words = self.pronunciation_engine.transcribe_multiple(en_words)
+        
+        # Validate and auto-fix pronunciations
+        vi_spoken_words = self._validate_and_fix_pronunciations(en_words, vi_spoken_words)
         
         # Build spoken text (lowercase, with pronunciations)
         spoken_text = self._build_spoken_text(origin_text, en_words, vi_spoken_words)
@@ -147,20 +171,46 @@ class DataProcessor:
         
         return entry
     
+    def _validate_and_fix_pronunciations(self, en_words: List[str], vi_spoken_words: List[str]) -> List[str]:
+        """
+        Validate và tự động sửa phiên âm nếu cần
+        
+        Args:
+            en_words: Danh sách các từ tiếng Anh
+            vi_spoken_words: Danh sách phiên âm tiếng Việt từ LLM
+            
+        Returns:
+            Danh sách phiên âm đã được sửa lỗi
+        """
+        fixed_pronunciations = []
+        
+        for en_word, vi_word in zip(en_words, vi_spoken_words):
+            # Kiểm tra xem vi_word có phải là tiếng Anh không (tức là LLM không phiên âm)
+            # Nếu giống y hệt từ gốc (lowercase) => chưa được phiên âm
+            if vi_word.lower() == en_word.lower():
+                # Auto-fix: Gọi pronunciation engine
+                corrected = self.pronunciation_engine.transcribe(en_word)
+                print(f"  ⚠️  Auto-fixed: '{en_word}' → '{corrected}' (was '{vi_word}')")
+                fixed_pronunciations.append(corrected)
+            else:
+                fixed_pronunciations.append(vi_word)
+        
+        return fixed_pronunciations
+    
     def _build_spoken_text(self, 
                           origin_text: str, 
                           en_words: List[str], 
                           vi_spoken_words: List[str]) -> str:
         """
-        Build spoken text by replacing English words with Vietnamese pronunciations
+        Xây dựng spoken text bằng cách thay thế các từ tiếng Anh bằng phiên âm.
         
         Args:
-            origin_text: Original text
-            en_words: List of English words
-            vi_spoken_words: List of Vietnamese pronunciations
+            origin_text: Văn bản gốc
+            en_words: Danh sách các từ tiếng Anh
+            vi_spoken_words: Danh sách phiên âm tiếng Việt
             
         Returns:
-            Spoken text (lowercase, with pronunciations)
+            Văn bản spoken (chữ thường, có phiên âm)
         """
         # Start with lowercase origin
         spoken = origin_text.lower()
@@ -183,13 +233,13 @@ class DataProcessor:
     
     def process_llm_to_adacs(self, llm_response: str) -> Optional[Dict]:
         """
-        Complete pipeline: LLM response → ADACS format
+        Pipeline hoàn chỉnh: LLM response → ADACS format.
         
         Args:
-            llm_response: Raw response from LLM
+            llm_response: Raw response từ LLM
             
         Returns:
-            Complete ADACS format entry or None if processing failed
+            Entry ADACS format hoàn chỉnh hoặc None nếu xử lý thất bại
         """
         # Parse LLM response
         parsed = self.parse_llm_response(llm_response)
@@ -199,7 +249,26 @@ class DataProcessor:
         # Check if it's already in ADACS format
         adacs_fields = ["origin", "spoken", "en_word", "vi_spoken_word", "type", "en_phrase"]
         if all(field in parsed for field in adacs_fields):
-            # Already in ADACS format, return as-is
+            # Already in ADACS format, but VALIDATE AND FIX pronunciations
+            print("\n  🔍 Validating LLM-generated pronunciations...")
+            
+            # Validate and fix vi_spoken_word
+            original_vi_words = parsed["vi_spoken_word"].copy() if isinstance(parsed["vi_spoken_word"], list) else []
+            parsed["vi_spoken_word"] = self._validate_and_fix_pronunciations(
+                parsed["en_word"], 
+                parsed["vi_spoken_word"]
+            )
+            
+            # Rebuild spoken text with corrected pronunciations
+            parsed["spoken"] = self._build_spoken_text(
+                parsed["origin"],
+                parsed["en_word"],
+                parsed["vi_spoken_word"]
+            )
+            
+            # Ensure lowercase
+            parsed["spoken"] = parsed["spoken"].lower()
+            
             return parsed
         
         # Otherwise, build ADACS format from simple format
@@ -216,15 +285,15 @@ class DataProcessor:
             return None
 
 
-# Example usage
+# Ví dụ sử dụng
 if __name__ == "__main__":
     from pronunciation_engine import PronunciationEngine
     
-    # Initialize
+    # Khởi tạo
     pronunciation = PronunciationEngine()
     processor = DataProcessor(pronunciation)
     
-    # Test with sample LLM response
+    # Test với sample LLM response
     sample_response = """{
   "text": "Team Leader yêu cầu update status của Sprint Planning Meeting này",
   "context": "sprint_planning",
@@ -237,11 +306,11 @@ if __name__ == "__main__":
     print(sample_response)
     print("\n" + "="*50 + "\n")
     
-    # Process
+    # Xử lý
     result = processor.process_llm_to_adacs(sample_response)
     
     if result:
         print("Output ADACS Format:")
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        print("Processing failed!")
+        print("Xử lý thất bại!")

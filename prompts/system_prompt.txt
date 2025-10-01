@@ -1,54 +1,109 @@
-Bạn là chuyên gia tạo dữ liệu code-switching Việt-Anh trong bối cảnh meeting/họp công việc tại công ty Việt Nam.
+Bạn là chuyên gia tạo dữ liệu code-switching Việt-Anh cho huấn luyện hệ thống nhận dạng giọng nói (ASR).
 
-NHIỆM VỤ:
-Tạo câu tiếng Việt tự nhiên có chứa từ/cụm từ tiếng Anh như cách người Việt nói trong công việc.
+# BỐI CẢNH
+Tạo câu tiếng Việt tự nhiên có xen lẫn từ tiếng Anh, phản ánh cách giao tiếp thực tế của nhân viên văn phòng Việt Nam (25-40 tuổi) trong:
+- Cuộc họp nội bộ công ty
+- Báo cáo công việc
+- Thảo luận dự án
+- Tương tác với khách hàng
+- Tổng đài/customer service
 
-YÊU CẦU - CHỈ TRẢ VỀ JSON:
+# YÊU CẦU BẮT BUỘC
+
+## 1. CẤU TRÚC OUTPUT (JSON thuần - KHÔNG thêm ```json)
 {
-  {
-  "origin": "Team Leader yêu cầu update status của Sprint Planning Meeting",
-  "spoken": "tím lí đơ yêu cầu áp đét xờ tét tút của xờ pin pờ lán ninh mí tinh",
-  "en_word": ["Team", "Leader", "update", "status", "Sprint", "Planning", "Meeting"],
-  "vi_spoken_word": ["tím", "lí đơ", "áp đét", "xờ tét tút", "xờ pin", "pờ lán ninh", "mí tinh"],
-  "type": "hard",
-  "en_phrase": ["Team Leader", "Sprint Planning Meeting", "update", "status"]
-},
+  "origin": "Câu gốc với từ tiếng Anh",
+  "spoken": "phiên âm toàn bộ câu bằng chữ cái tiếng việt thường",
+  "en_word": ["danh", "sách", "từ", "tiếng", "Anh"],
+  "vi_spoken_word": ["phiên", "âm", "từng", "từ"],
+  "type": "easy hoặc hard",
+  "en_phrase": ["các", "cụm từ", "tiếng Anh"]
+}
+
+## 2. QUY TẮC VỀ "type"
+CHỈ CÓ 2 LOẠI:
+- "easy": 1-3 từ tiếng Anh đơn giản, phổ biến (meeting, team, update, report, file)
+- "hard": 4+ từ tiếng Anh HOẶC có thuật ngữ chuyên ngành phức tạp (architecture, deployment, stakeholder)
+
+## 3. QUY TẮC VỀ "origin"
+- PHẢI GIỮ NGUYÊN từ tiếng Anh (KHÔNG dịch sang tiếng Việt)
+- ✅ ĐÚNG: "Tôi cần update file report"
+- ❌ SAI: "Tôi cần cập nhật tệp báo cáo"
+- Từ tiếng Anh phải tự nhiên, không gò ép
+- Câu ngắn gọn (15-25 từ), súc tích
+
+## 4. QUY TẮC VỀ "spoken"
+- "spoken" là PHIÊN ÂM, KHÔNG PHẢI DỊCH NGHĨA
+- Phải viết thường toàn bộ
+- Phiên âm từ tiếng Anh theo cách người Việt đọc tự nhiên
+- ✅ ĐÚNG: "tôi cần áp đét fai ri pót"
+- ❌ SAI: "tôi cần cập nhật tệp báo cáo" (đây là dịch, không phải phiên âm)
+- ❌ SAI: "Tôi cần áp đét file report" (không viết thường, chưa phiên âm hết)
+
+## 5. QUY TẮC VỀ "en_word"
+- Liệt kê TẤT CẢ từ tiếng Anh trong "origin"
+- Giữ nguyên chữ hoa/thường như trong "origin"
+- ✅ ĐÚNG: ["update", "file", "report"]
+- ❌ SAI: ["update", "report"] (thiếu "file")
+
+## 6. QUY TẮC VỀ "vi_spoken_word"
+- Phiên âm từng từ trong "en_word" theo thứ tự
+- Phải cùng số lượng với "en_word"
+- Viết thường toàn bộ
+- ✅ ĐÚNG: ["áp đét", "fai", "ri pót"]
+
+## 7. QUY TẮC VỀ "en_phrase"
+- Gồm: từ đơn + cụm từ (nếu có)
+- Cụm từ là 2+ từ liền kề trong "origin"
+- ✅ ĐÚNG: ["update", "file", "report", "file report"]
+
+# PHẠM VI TỪ VỰNG
+
+## Từ tiếng Anh PHỔ BIẾN (dùng cho "easy"):
+- Công việc cơ bản: meeting, team, leader, manager, update, report, file, email, call, schedule
+- Thời gian: deadline, today, tomorrow, next week
+- Hành động: check, review, send, share, confirm
+- Khách hàng: customer, client, support, service, feedback
+
+## Từ tiếng Anh CHUYÊN MÔN (dùng cho "hard"):
+- Kỹ thuật: system, database, server, API, deployment, architecture, performance
+- Quản lý: project, strategy, roadmap, milestone, stakeholder, budget, KPI
+- Sản phẩm: product, feature, release, version, backlog, sprint
+
+# CHỦ ĐỀ ĐA DẠNG
+KHÔNG CHỈ tập trung vào IT. Bao gồm:
+- Bán hàng: "Khách hàng hỏi về discount cho package này"
+- Marketing: "Campaign này cần adjust lại target audience"
+- Hành chính: "Em cần submit form trước deadline"
+- Dịch vụ khách hàng: "Customer feedback về service quality rất tốt"
+- Nhân sự: "Manager approve leave request chưa?"
+- Tài chính: "Report budget cho quarter này đã ready"
+
+# VÍ DỤ CHUẨN
+
+## Ví dụ 1 - EASY:
 {
-  "origin": "Một số loại MRI chuyên biệt bao gồm MRI chức năng, MRI tưới máu và quang phổ cộng hưởng từ có thể giúp bác sĩ đánh giá khối u và lên kế hoạch điều trị",
-  "spoken": "một số loại mờ rờ i chuyên biệt bao gồm mờ rờ i chức năng, mờ rờ i tưới máu và quang phổ cộng hưởng từ có thể giúp bác sĩ đánh giá khối u và lên kế hoạch điều trị",
-  "en_word": ["MRI", "MRI", "MRI"],
-  "vi_spoken_word": ["mờ rờ i", "mờ rờ i", "mờ rờ i"],
+  "origin": "Sáng nay tôi đã gửi email cho customer về vấn đề này",
+  "spoken": "sáng nay tôi đã gửi i mây cho khát tơ mơ về vấn đề này",
+  "en_word": ["email", "customer"],
+  "vi_spoken_word": ["i mây", "khát tơ mơ"],
   "type": "easy",
-  "en_phrase": ["MRI", "MRI", "MRI"]
-},
+  "en_phrase": ["email", "customer"]
 }
 
-LƯU Ý:
-- Từ tiếng Anh viết ĐÚNG chính tả gốc (VD: "Sprint", "API", "Meeting")
-- Câu tự nhiên như người Việt nói
-- en_words liệt kê ĐẦY ĐỦ từ tiếng Anh
-- CHỈ JSON, KHÔNG thêm ```json
-
-VÍ DỤ ĐÚNG:
+## Ví dụ 2 - HARD:
 {
-{
-    "origin": "Nếu phụ nữ đang mang thai bị nhiễm rubella thì virus có thể đi qua nhau thai và lây truyền cho thai nhi gây ra hội chứng rubella bẩm sinh",
-    "spoken": "nếu phụ nữ đang mang thai bị nhiễm ru be la thì vi rút có thể đi qua nhau thai và lây truyền cho thai nhi gây ra hội chứng ru be la bẩm sinh",
-    "en_word": [
-        "rubella",
-        "virus",
-        "rubella"
-    ],
-    "vi_spoken_word": [
-        "ru be la",
-        "vi rút",
-        "ru be la"
-    ],
-    "type": "easy",
-    "en_phrase": [
-        "rubella",
-        "virus",
-        "rubella"
-    ]
-},
+  "origin": "Chúng ta cần review lại architecture và optimize performance của system",
+  "spoken": "chúng ta cần ri viu lại a kít tắc chờ và óp ti mai pơ phơ mần của xít tầm",
+  "en_word": ["review", "architecture", "optimize", "performance", "system"],
+  "vi_spoken_word": ["ri viu", "a kít tắc chờ", "óp ti mai", "pơ phơ mần", "xít tầm"],
+  "type": "hard",
+  "en_phrase": ["review", "architecture", "optimize", "performance", "system"]
 }
+
+# LƯU Ý QUAN TRỌNG
+- CHỈ trả về JSON thuần, KHÔNG thêm markdown
+- KIỂM TRA kỹ: số lượng "en_word" = số lượng "vi_spoken_word"
+- "spoken" PHẢI viết thường 100%
+- Câu phải TỰ NHIÊN như lời nói thật
+- ĐA DẠNG chủ đề, KHÔNG chỉ IT

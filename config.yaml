@@ -7,12 +7,12 @@ dataset:
   size: 1000
 
 # AI Provider Selection (openai or gemini)
-ai_provider: "gemini"  # Change to "gemini" to use Google Gemini
+ai_provider: "openai"  # Change to "gemini" to use Google Gemini, "openai" for OpenAI/LiteLLM
   
 
-# OpenAI Configuration (Cost-effective)
+# OpenAI Configuration (Cost-effective) - Works with LiteLLM
 openai:
-  model: "gpt-3.5-turbo"  # Cost-effective choice
+  model: "gpt-4.1-mini"  # Available on your LiteLLM endpoint
   temperature: 0.7
   max_tokens: 300  # Reduced for cost control
   batch_delay: 0.5  # Delay between requests to avoid rate limits
@@ -26,43 +26,44 @@ gemini:
   batch_delay: 0.3  # Gemini has higher rate limits
   max_retries: 3
 
-# Meeting Contexts (Weight distribution)
+# Meeting Contexts (Weight distribution) - ĐA DẠNG không chỉ IT
 meeting_contexts:
-  daily_standup: 0.20
-  sprint_planning: 0.15
-  client_presentation: 0.15
-  technical_discussion: 0.20
-  performance_review: 0.10
-  training_session: 0.10
-  team_meeting: 0.10
+  team_meeting: 0.20          # Họp team nội bộ
+  client_interaction: 0.20    # Tương tác khách hàng
+  work_report: 0.15           # Báo cáo công việc
+  project_discussion: 0.15    # Thảo luận dự án
+  customer_service: 0.15      # Tổng đài/dịch vụ khách hàng
+  performance_review: 0.10    # Đánh giá hiệu suất
+  general_office: 0.05        # Văn phòng chung
 
-# Difficulty Distribution
+# Difficulty Distribution - CHỈ CÓ 2 LOẠI
 difficulty_levels:
-  easy: 0.50   # Single common words
-  hard: 0.35   # Technical terms, phrases
-  mixed: 0.15  # Heavy code-switching
+  easy: 0.60   # 1-3 từ tiếng Anh đơn giản, phổ biến
+  hard: 0.40   # 4+ từ tiếng Anh HOẶC thuật ngữ chuyên môn
 
-# Meeting Domains
+# Meeting Domains - ĐA DẠNG
 domains:
-  - software_development
-  - business_strategy
-  - product_management
-  - marketing
-  - sales
-  - operations
-  - project_management
+  - sales              # Bán hàng
+  - customer_service   # Dịch vụ khách hàng
+  - marketing          # Marketing
+  - operations         # Vận hành
+  - human_resources    # Nhân sự
+  - finance            # Tài chính
+  - general_admin      # Hành chính
+  - project_management # Quản lý dự án
+  - it_support         # Hỗ trợ IT
 
 # Pronunciation Settings
 pronunciation:
-  use_llm_for_complex: false  # Set false to save cost
-  use_rules_only: true
+  use_llm_for_complex: true   # Enable AI pronunciation for unknown words
+  use_rules_only: false       # Use hybrid approach
   cache_results: true
   rules_file: "./data/pronunciation_rules.json"
 
 # Few-shot Configuration
 few_shot:
   num_examples: 3  # 3-5 examples per prompt
-  source: "./prompts/few_shot_examples.json"
+  source: "./prompts/few_shot_examples_meeting.json"
   use_adacs_examples: true
   
 # Quality Control
